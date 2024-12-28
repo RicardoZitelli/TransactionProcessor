@@ -1,0 +1,37 @@
+version: '3.8'
+
+name: transaction-processor-compose
+
+networks:
+    transactionprocessorapp:
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=1Q2w3e4r%      
+      - MSSQL_SA_PASSWORD=1Q2w3e4r%      
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    networks:
+      - transactionprocessorapp
+    volumes:
+      - sql_data:/var/opt/mssql
+      - ./src/TransactionProcessor.App/scripts/init.sql:/tmp/init.sql
+
+  app:
+    build:
+      context: .
+      dockerfile: src/TransactionProcessor.App/Dockerfile
+    depends_on:
+      - sqlserver
+    ports:
+      - "8080:80"    
+    networks:
+      - transactionprocessorapp
+
+volumes:
+  sql_data:

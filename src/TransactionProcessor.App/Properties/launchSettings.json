@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TransactionProcessor.App": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

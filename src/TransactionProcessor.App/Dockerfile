@@ -1,0 +1,31 @@
+# Acesse https://aka.ms/customizecontainer para saber como personalizar seu contêiner de depuração e como o Visual Studio usa este Dockerfile para criar suas imagens para uma depuração mais rápida.
+
+# Esta fase é usada durante a execução no VS no modo rápido (Padrão para a configuração de Depuração)
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
+USER app
+WORKDIR /app
+
+
+# Esta fase é usada para compilar o projeto de serviço
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["src/TransactionProcessor.App/TransactionProcessor.App.csproj", "src/TransactionProcessor.App/"]
+COPY ["src/TransactionProcessor.Application/TransactionProcessor.Application.csproj", "src/TransactionProcessor.Application/"]
+COPY ["src/TransactionProcessor.Domain/TransactionProcessor.Domain.csproj", "src/TransactionProcessor.Domain/"]
+COPY ["src/TransactionProcessor.Infrastructure/TransactionProcessor.Infrastructure.csproj", "src/TransactionProcessor.Infrastructure/"]
+RUN dotnet restore "./src/TransactionProcessor.App/TransactionProcessor.App.csproj"
+COPY . .
+WORKDIR "/src/src/TransactionProcessor.App"
+RUN dotnet build "./TransactionProcessor.App.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# Esta fase é usada para publicar o projeto de serviço a ser copiado para a fase final
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./TransactionProcessor.App.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# Esta fase é usada na produção ou quando executada no VS no modo normal (padrão quando não está usando a configuração de Depuração)
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "TransactionProcessor.App.dll"]
